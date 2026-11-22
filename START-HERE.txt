@@ -1,0 +1,21 @@
+STAHLTECH — PRIVATE SECURITY WEBSITE
+
+Complete Next.js / React / TypeScript source with local product images.
+
+QUICK START
+1. Install Node.js 22.14 or later.
+2. Extract this ZIP and open the STAHLTECH-Private-Security folder in VS Code.
+3. Open its terminal and run: npm ci
+4. Copy .env.example to .env.local and configure verified business information.
+5. Run: npm run build
+6. Run: npm run dev
+7. Open http://localhost:3000
+
+See README.md for product replacement, image replacement, configuration and hosting details.
+
+IMPORTANT BEFORE LAUNCH
+The 30 catalogue entries and AI-generated images are illustrative samples. Verify specifications and replace/approve photos before publication.
+Configure RESEND_API_KEY, ENQUIRY_FROM and ENQUIRY_TO for enquiry email delivery. Without credentials, submissions explicitly report that they were not sent or stored.
+Review business contacts, other division URLs, privacy and terms before public launch.
+
+The quotation basket persists in the visitor browser. There is no payment checkout or fake pricing.
