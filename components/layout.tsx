@@ -7,42 +7,52 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BasketButton } from "./quote-provider";
 import { categories } from "@/lib/products";
 import { company } from "@/lib/config";
+import { stripLocale } from "@/lib/i18n/config";
+import { localizeCategories } from "@/lib/i18n/catalogue";
+import { useI18n } from "@/lib/i18n/client";
+import { LanguageSwitcher } from "./language-switcher";
+
 export function Wordmark() {
+  const { t } = useI18n();
   return (
     <span className="wordmark">
       STAHLTECH<span className="wordmark-dot">+</span>
-      <small>PRIVATE SECURITY & UNIFORMS</small>
+      <small>{t.common.brandTagline}</small>
     </span>
   );
 }
+
 export function Header() {
   const [menu, setMenu] = useState(false);
   const path = usePathname();
   const reduce = useReducedMotion();
+  const { t, href, locale } = useI18n();
+  const localisedCategories = localizeCategories(categories, locale);
+  const currentPath = stripLocale(path);
   const links = [
-    ["/products/", "Products"],
-    ["/about/", "About Stahltech"],
-    ["/custom-orders/", "Custom Orders"],
-    ["/contact/", "Contact"],
+    ["/products/", t.common.products],
+    ["/about/", t.common.about],
+    ["/custom-orders/", t.common.customOrders],
+    ["/contact/", t.common.contact],
   ];
   return (
     <>
       <div className="info-bar">
         <div className="container">
-          <span>{company.infoBar}</span>
+          <span>{t.common.infoBar}</span>
           <span>
-            <Globe2 size={12} /> Built for business. Open to the world.
+            <Globe2 size={12} /> {t.common.builtForBusiness}
           </span>
         </div>
       </div>
       <header className="header">
         <div className="container nav">
-          <Link href="/" aria-label="Stahltech home">
+          <Link href={href("/")} aria-label={t.common.homeAria}>
             <Wordmark />
           </Link>
-          <nav className="desktop-nav" aria-label="Main navigation">
+          <nav className="desktop-nav" aria-label={t.common.mainNav}>
             {links.map(([url, label]) =>
-              label === "Products" ? (
+              url === "/products/" ? (
                 <details
                   className="nav-dropdown"
                   key={url}
@@ -58,23 +68,23 @@ export function Header() {
                   }}
                 >
                   <summary>
-                    Products <span className="nav-plus">+</span>
+                    {label} <span className="nav-plus">+</span>
                   </summary>
                   <div>
                     <Link
-                      href="/products/"
+                      href={href("/products/")}
                       onClick={(e) =>
                         e.currentTarget
                           .closest("details")
                           ?.removeAttribute("open")
                       }
                     >
-                      Explore all products <ArrowUpRight size={14} />
+                      {t.common.exploreAllProducts} <ArrowUpRight size={14} />
                     </Link>
-                    {categories.map((c) => (
+                    {localisedCategories.map((c) => (
                       <Link
                         key={c.slug}
-                        href={`/categories/${c.slug}/`}
+                        href={href(`/categories/${c.slug}/`)}
                         onClick={(e) =>
                           e.currentTarget
                             .closest("details")
@@ -89,10 +99,12 @@ export function Header() {
                 </details>
               ) : (
                 <Link
-                  className={path.startsWith(url) ? "active" : ""}
-                  aria-current={path.startsWith(url) ? "page" : undefined}
+                  className={currentPath.startsWith(url) ? "active" : ""}
+                  aria-current={
+                    currentPath.startsWith(url) ? "page" : undefined
+                  }
                   key={url}
-                  href={url}
+                  href={href(url)}
                 >
                   {label}
                 </Link>
@@ -100,13 +112,17 @@ export function Header() {
             )}
           </nav>
           <div className="nav-actions">
+            <LanguageSwitcher compact />
             <BasketButton />
-            <Link href="/contact/" className="button small-button desktop-cta">
-              Request a Quote <ArrowUpRight size={15} />
+            <Link
+              href={href("/contact/")}
+              className="button small-button desktop-cta"
+            >
+              {t.common.requestQuote} <ArrowUpRight size={15} />
             </Link>
             <button
               className="icon-button mobile-toggle"
-              aria-label={menu ? "Close navigation" : "Open navigation"}
+              aria-label={menu ? t.common.closeNav : t.common.openNav}
               aria-expanded={menu}
               aria-controls="mobile-nav"
               onClick={() => setMenu(!menu)}
@@ -119,24 +135,24 @@ export function Header() {
           {menu && (
             <motion.nav
               id="mobile-nav"
-              aria-label="Mobile navigation"
+              aria-label={t.common.mobileNav}
               initial={{ height: reduce ? "auto" : 0, opacity: 1 }}
               animate={{ height: "auto" }}
               exit={{ height: 0 }}
               className="mobile-nav"
             >
               {links.map(([url, label]) => (
-                <Link key={url} href={url} onClick={() => setMenu(false)}>
+                <Link key={url} href={href(url)} onClick={() => setMenu(false)}>
                   {label}
                   <ArrowUpRight size={18} />
                 </Link>
               ))}
               <div className="mobile-collections">
-                <span>Collections</span>
-                {categories.map((c) => (
+                <span>{t.common.collections}</span>
+                {localisedCategories.map((c) => (
                   <Link
                     key={c.slug}
-                    href={`/categories/${c.slug}/`}
+                    href={href(`/categories/${c.slug}/`)}
                     onClick={() => setMenu(false)}
                   >
                     {c.short}
@@ -144,8 +160,8 @@ export function Header() {
                   </Link>
                 ))}
               </div>
-              <Link href="/quote/" onClick={() => setMenu(false)}>
-                Review quotation <ArrowRight size={18} />
+              <Link href={href("/quote/")} onClick={() => setMenu(false)}>
+                {t.common.reviewQuotation} <ArrowRight size={18} />
               </Link>
             </motion.nav>
           )}
@@ -154,33 +170,36 @@ export function Header() {
     </>
   );
 }
+
 export function Footer() {
+  const { t, href, locale } = useI18n();
+  const localisedCategories = localizeCategories(categories, locale);
   return (
     <footer className="footer">
       <div className="container footer-grid">
         <div>
-          <Link href="/" aria-label="Stahltech home">
+          <Link href={href("/")} aria-label={t.common.homeAria}>
             <Wordmark />
           </Link>
           <p>
-            Professional products.
+            {t.footer.tagline[0]}
             <br />
-            Considered partnerships.
+            {t.footer.tagline[1]}
           </p>
-          <span className="small muted">
-            For international business enquiries.
-          </span>
+          <span className="small muted">{t.footer.note}</span>
         </div>
         <div>
-          <h3>EXPLORE</h3>
-          <Link href="/products/">Product catalogue</Link>
-          <Link href="/about/">About Stahltech</Link>
-          <Link href="/custom-orders/">Custom enquiries</Link>
-          <Link href="/faq/">Frequently asked questions</Link>
+          <h3>{t.footer.explore}</h3>
+          <Link href={href("/products/")}>{t.footer.productCatalogue}</Link>
+          <Link href={href("/about/")}>{t.footer.aboutStahltech}</Link>
+          <Link href={href("/custom-orders/")}>
+            {t.footer.customEnquiries}
+          </Link>
+          <Link href={href("/faq/")}>{t.footer.faq}</Link>
         </div>
         <div>
-          <h3>PRODUCT COLLECTIONS</h3>
-          {categories
+          <h3>{t.footer.productCollections}</h3>
+          {localisedCategories
             .filter((c) =>
               [
                 "clothing",
@@ -192,20 +211,20 @@ export function Footer() {
               ].includes(c.slug),
             )
             .map((c) => (
-              <Link key={c.slug} href={`/categories/${c.slug}/`}>
+              <Link key={c.slug} href={href(`/categories/${c.slug}/`)}>
                 {c.short}
               </Link>
             ))}
         </div>
         <div>
-          <h3>LET’S TALK BUSINESS</h3>
+          <h3>{t.footer.talk}</h3>
           <p>
-            Have a product or sourcing requirement?
+            {t.footer.talkNote[0]}
             <br />
-            Start a conversation with our team.
+            {t.footer.talkNote[1]}
           </p>
-          <Link href="/contact/" className="footer-enquiry">
-            Make an enquiry <ArrowUpRight size={17} />
+          <Link href={href("/contact/")} className="footer-enquiry">
+            {t.footer.enquiry} <ArrowUpRight size={17} />
           </Link>
           {company.surgicalUrl && (
             <a
@@ -213,7 +232,7 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Surgical instruments ↗
+              {t.footer.surgical} ↗
             </a>
           )}
           {company.leatherUrl && (
@@ -222,29 +241,26 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Leather products ↗
+              {t.footer.leather} ↗
             </a>
           )}
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>
-          © {new Date().getFullYear()} STAHLTECH. All rights reserved.
-        </span>
+        <span>{t.footer.rights.replace("{year}", String(new Date().getFullYear()))}</span>
         <span className="footer-legal">
-          <Link href="/privacy/">Privacy policy</Link>
-          <Link href="/terms/">Terms & conditions</Link>
-          <span>EN / INTERNATIONAL</span>
+          <Link href={href("/privacy/")}>{t.footer.privacy}</Link>
+          <Link href={href("/terms/")}>{t.footer.terms}</Link>
+          <LanguageSwitcher compact />
         </span>
       </div>
-      <div className="container sample-footer">
-        DEVELOPMENT CATALOGUE · Illustrative products and AI-generated imagery.
-        Specifications require verification.
-      </div>
+      <div className="container sample-footer">{t.footer.sample}</div>
     </footer>
   );
 }
+
 export function WhatsAppButton() {
+  const { t } = useI18n();
   const number = company.whatsapp.replace(/\D/g, "");
   if (!number) return null;
   return (
@@ -253,7 +269,7 @@ export function WhatsAppButton() {
       href={`https://wa.me/${number}`}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Chat with STAHLTECH on WhatsApp"
+      aria-label={t.common.whatsapp}
     >
       <svg
         viewBox="0 0 24 24"
@@ -266,25 +282,27 @@ export function WhatsAppButton() {
     </a>
   );
 }
+
 export function FinalCTA() {
+  const { t, href } = useI18n();
   return (
     <section className="final-cta">
       <div className="container">
         <div>
-          <p className="eyebrow">YOUR NEXT BUSINESS PARTNERSHIP</p>
+          <p className="eyebrow">{t.finalCta.eyebrow}</p>
           <h2>
-            Let’s build your
+            {t.finalCta.heading[0]}
             <br />
-            next product enquiry.
+            {t.finalCta.heading[1]}
           </h2>
           <p>
-            Share your product selection, quantities and requirements.
+            {t.finalCta.body[0]}
             <br />
-            We’ll take the conversation from there.
+            {t.finalCta.body[1]}
           </p>
         </div>
-        <Link className="button light-button" href="/contact/">
-          Start a conversation <ArrowUpRight size={19} />
+        <Link className="button light-button" href={href("/contact/")}>
+          {t.finalCta.button} <ArrowUpRight size={19} />
         </Link>
       </div>
     </section>

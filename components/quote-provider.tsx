@@ -13,7 +13,11 @@ import { ShoppingBag, X, ArrowRight, Minus, Plus, Trash2 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { products, imagePath } from "@/lib/products";
 import { parseStoredQuote, type QuoteItem } from "@/lib/quote";
+import { displayColour, displaySize, localizedProduct } from "@/lib/i18n/catalogue";
+import { fill } from "@/lib/i18n/format";
+import { useI18n } from "@/lib/i18n/client";
 import Image from "next/image";
+
 type Context = {
   items: QuoteItem[];
   ready: boolean;
@@ -38,6 +42,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const reduce = useReducedMotion();
+  const { t, href } = useI18n();
   // Restore the browser-owned basket after hydration; never read localStorage on the server.
   useEffect(() => {
     try {
@@ -124,87 +129,95 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         >
           <div className="section-heading">
             <div>
-              <p className="eyebrow">YOUR SELECTION</p>
+              <p className="eyebrow">{t.quote.eyebrow}</p>
               <h2 id="quote-title">
-                Quotation basket <span className="muted">({items.length})</span>
+                {t.quote.title}{" "}
+                <span className="muted">({items.length})</span>
               </h2>
             </div>
             <button
               className="icon-button"
               onClick={close}
-              aria-label="Close quotation basket"
+              aria-label={t.quote.close}
             >
               <X />
             </button>
           </div>
           <QuoteLines compact />
           {items.length > 0 ? (
-            <Link className="button full" href="/quote/" onClick={close}>
-              Review your quotation <ArrowRight size={17} />
+            <Link className="button full" href={href("/quote/")} onClick={close}>
+              {t.quote.review} <ArrowRight size={17} />
             </Link>
           ) : (
-            <Link className="button" href="/products/" onClick={close}>
-              Explore products <ArrowRight size={17} />
+            <Link
+              className="button"
+              href={href("/products/")}
+              onClick={close}
+            >
+              {t.quote.explore} <ArrowRight size={17} />
             </Link>
           )}
-          <p className="small muted mt-5">
-            No payment required. Product details and commercial terms are
-            confirmed individually.
-          </p>
+          <p className="small muted mt-5">{t.quote.note}</p>
         </motion.div>
       </dialog>
     </QuoteContext.Provider>
   );
 }
+
 export function BasketButton() {
   const { items, open } = useQuote();
+  const { t } = useI18n();
   return (
     <button
       className="basket-button"
       onClick={open}
-      aria-label={`Open quotation basket, ${items.length} product variants`}
+      aria-label={fill(t.common.openBasket, { count: items.length })}
     >
       <ShoppingBag size={18} />
-      <span>Quote basket</span>
+      <span>{t.common.quoteBasket}</span>
       <b>{items.length}</b>
     </button>
   );
 }
+
 export function QuoteLines({ compact = false }: { compact?: boolean }) {
   const { items, ready, update, remove } = useQuote();
-  if (!ready) return <p role="status">Loading your selection…</p>;
+  const { t, href, locale } = useI18n();
+  if (!ready) return <p role="status">{t.quote.loading}</p>;
   if (!items.length)
     return (
       <div className="empty-state">
         <ShoppingBag size={36} />
-        <h3>Your selection starts here.</h3>
-        <p>Explore the catalogue and add products to build your enquiry.</p>
+        <h3>{t.quote.emptyTitle}</h3>
+        <p>{t.quote.emptyBody}</p>
       </div>
     );
   return (
     <div className="quote-lines">
       {items.map((item) => {
-        const p = products.find((p) => p.slug === item.slug);
-        if (!p) return null;
+        const found = products.find((p) => p.slug === item.slug);
+        if (!found) return null;
+        const p = localizedProduct(found, locale);
         return (
           <article className="quote-line" key={item.key}>
             <Image
               src={imagePath(p.image)}
-              alt={`Illustrative ${p.name}`}
+              alt={fill(t.common.imageAlt, { name: p.name })}
               width={110}
               height={110}
             />
             <div className="quote-line-content">
-              <Link href={`/products/${p.slug}/`}>
+              <Link href={href(`/products/${p.slug}/`)}>
                 <strong>{p.name}</strong>
               </Link>
               <p className="small muted">
-                {p.code} · {item.colour} · {item.size}
+                {p.code} · {displayColour(locale, item.colour)} ·{" "}
+                {displaySize(locale, item.size)}
               </p>
               <div className="quantity-row">
                 <div className="stepper">
                   <button
-                    aria-label={`Decrease ${p.name} quantity`}
+                    aria-label={fill(t.quote.decrease, { name: p.name })}
                     onClick={() =>
                       update(item.key, { quantity: item.quantity - 1 })
                     }
@@ -212,7 +225,7 @@ export function QuoteLines({ compact = false }: { compact?: boolean }) {
                     <Minus size={13} />
                   </button>
                   <input
-                    aria-label={`Quantity for ${p.name}`}
+                    aria-label={fill(t.quote.quantity, { name: p.name })}
                     type="number"
                     min="1"
                     max="100000"
@@ -222,7 +235,7 @@ export function QuoteLines({ compact = false }: { compact?: boolean }) {
                     }
                   />
                   <button
-                    aria-label={`Increase ${p.name} quantity`}
+                    aria-label={fill(t.quote.increase, { name: p.name })}
                     onClick={() =>
                       update(item.key, { quantity: item.quantity + 1 })
                     }
@@ -232,7 +245,7 @@ export function QuoteLines({ compact = false }: { compact?: boolean }) {
                 </div>
                 <button
                   className="icon-button"
-                  aria-label={`Remove ${p.name}`}
+                  aria-label={fill(t.quote.remove, { name: p.name })}
                   onClick={() => remove(item.key)}
                 >
                   <Trash2 size={16} />
@@ -240,10 +253,10 @@ export function QuoteLines({ compact = false }: { compact?: boolean }) {
               </div>
               {!compact && (
                 <label className="small">
-                  Product notes
+                  {t.quote.productNotes}
                   <textarea
                     maxLength={1000}
-                    placeholder="Branding, packaging or other requirements"
+                    placeholder={t.quote.notesPlaceholder}
                     value={item.notes}
                     onChange={(e) =>
                       update(item.key, { notes: e.target.value })

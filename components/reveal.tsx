@@ -1,6 +1,6 @@
 "use client";
 import { motion, useReducedMotion } from "motion/react";
-export function HeroTitle() {
+export function HeroTitle({ lines }: { lines: string[] }) {
   const reduced = useReducedMotion();
   return (
     <motion.h1
@@ -9,11 +9,11 @@ export function HeroTitle() {
       transition={{ duration: reduced ? 0 : 0.65 }}
       className="hero-title"
     >
-      Private security.
+      {lines[0]}
       <br />
-      Professional identity.
+      {lines[1]}
       <br />
-      <span>Everyday essentials.</span>
+      <span>{lines[2]}</span>
     </motion.h1>
   );
 }

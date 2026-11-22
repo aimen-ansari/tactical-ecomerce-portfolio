@@ -1,11 +1,14 @@
 import { company } from "./config";
 import {
   products,
+  categories,
   imagePath,
   categoryName,
   type Category,
   type Product,
 } from "./products";
+import { getDictionary, localePath, type Locale } from "./i18n";
+import { localizedCategory } from "./i18n/catalogue";
 
 export const siteUrl = company.url.replace(/\/+$/, "");
 export const absoluteUrl = (path: string) =>
@@ -16,10 +19,9 @@ export const latestCatalogueDate = products.reduce(
   "2026-01-01",
 );
 const divisionName = `${company.name} — ${company.division}`;
-const defaultDescription =
-  "Private security uniforms, badges, identification, phone holders and duty accessories for business buyers.";
 
-export const organizationJsonLd = () => {
+export const organizationJsonLd = (locale: Locale = "en") => {
+  const t = getDictionary(locale);
   const contactPoint = [
     ...(company.email
       ? [
@@ -27,7 +29,7 @@ export const organizationJsonLd = () => {
             "@type": "ContactPoint",
             contactType: "sales",
             email: company.email,
-            availableLanguage: ["English", "French"],
+            availableLanguage: ["English", "German", "French"],
           },
         ]
       : []),
@@ -37,7 +39,7 @@ export const organizationJsonLd = () => {
             "@type": "ContactPoint",
             contactType: "sales",
             telephone: company.phone,
-            availableLanguage: ["English", "French"],
+            availableLanguage: ["English", "German", "French"],
           },
         ]
       : []),
@@ -49,7 +51,7 @@ export const organizationJsonLd = () => {
     name: company.name,
     url: siteUrl,
     logo: absoluteUrl("/logo.png"),
-    description: defaultDescription,
+    description: t.meta.description,
     ...(company.address
       ? {
           address: {
@@ -63,29 +65,34 @@ export const organizationJsonLd = () => {
   };
 };
 
-export const websiteJsonLd = () => ({
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: divisionName,
-  url: siteUrl,
-  inLanguage: "en",
-  publisher: {
-    "@type": "Organization",
-    name: company.name,
+export const websiteJsonLd = (locale: Locale = "en") => {
+  const t = getDictionary(locale);
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: `${company.name} — ${t.common.brandTagline}`,
     url: siteUrl,
-  },
-});
+    inLanguage: locale,
+    publisher: {
+      "@type": "Organization",
+      name: company.name,
+      url: siteUrl,
+    },
+  };
+};
 
 export const webPageJsonLd = (
   name: string,
   description: string,
   path: string,
+  locale: Locale = "en",
 ) => ({
   "@context": "https://schema.org",
   "@type": "WebPage",
   name,
   description,
-  url: absoluteUrl(path),
+  url: absoluteUrl(localePath(locale, path)),
+  inLanguage: locale,
   isPartOf: {
     "@type": "WebSite",
     name: divisionName,
@@ -104,38 +111,44 @@ export const breadcrumbJsonLd = (items: { name: string; path: string }[]) => ({
   })),
 });
 
-export const productJsonLd = (product: Product) => ({
-  "@context": "https://schema.org",
-  "@type": "Product",
-  name: product.name,
-  description: product.description,
-  sku: product.code,
-  category: categoryName(product.category),
-  url: absoluteUrl(`/products/${product.slug}/`),
-  image: [imageUrl(product.image)],
-  brand: {
-    "@type": "Brand",
-    name: company.name,
-  },
-  material: product.material,
-  color: product.colours.join(", "),
-  size: product.sizes.join(", "),
-  additionalProperty: Object.entries(product.specs).map(([name, value]) => ({
-    "@type": "PropertyValue",
-    name,
-    value,
-  })),
-});
+export const productJsonLd = (product: Product, locale: Locale = "en") => {
+  const category = categories.find((item) => item.slug === product.category);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    sku: product.code,
+    category: category
+      ? localizedCategory(category, locale).name
+      : categoryName(product.category),
+    url: absoluteUrl(localePath(locale, `/products/${product.slug}/`)),
+    image: [imageUrl(product.image)],
+    brand: {
+      "@type": "Brand",
+      name: company.name,
+    },
+    material: product.material,
+    color: product.colours.join(", "),
+    size: product.sizes.join(", "),
+    additionalProperty: Object.entries(product.specs).map(([name, value]) => ({
+      "@type": "PropertyValue",
+      name,
+      value,
+    })),
+  };
+};
 
 export const itemListJsonLd = (
   items: Product[],
   name: string,
   path: string,
+  locale: Locale = "en",
 ) => ({
   "@context": "https://schema.org",
   "@type": "ItemList",
   name,
-  url: absoluteUrl(path),
+  url: absoluteUrl(localePath(locale, path)),
   numberOfItems: items.length,
   itemListElement: items.map((product, index) => ({
     "@type": "ListItem",
@@ -143,7 +156,7 @@ export const itemListJsonLd = (
     item: {
       "@type": "Product",
       name: product.name,
-      url: absoluteUrl(`/products/${product.slug}/`),
+      url: absoluteUrl(localePath(locale, `/products/${product.slug}/`)),
       image: imageUrl(product.image),
     },
   })),
@@ -152,12 +165,14 @@ export const itemListJsonLd = (
 export const collectionPageJsonLd = (
   category: Category,
   items: Product[],
+  locale: Locale = "en",
 ) => ({
   "@context": "https://schema.org",
   "@type": "CollectionPage",
   name: category.name,
   description: category.description,
-  url: absoluteUrl(`/categories/${category.slug}/`),
+  url: absoluteUrl(localePath(locale, `/categories/${category.slug}/`)),
+  inLanguage: locale,
   isPartOf: {
     "@type": "WebSite",
     name: divisionName,
@@ -172,7 +187,7 @@ export const collectionPageJsonLd = (
       item: {
         "@type": "Product",
         name: product.name,
-        url: absoluteUrl(`/products/${product.slug}/`),
+        url: absoluteUrl(localePath(locale, `/products/${product.slug}/`)),
         image: imageUrl(product.image),
       },
     })),

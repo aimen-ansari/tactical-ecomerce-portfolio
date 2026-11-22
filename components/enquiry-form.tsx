@@ -4,27 +4,39 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { company } from "@/lib/config";
+import { fill } from "@/lib/i18n/format";
+import { useI18n } from "@/lib/i18n/client";
 import { useQuote } from "./quote-provider";
+
 export function EnquiryForm({ custom = false }: { custom?: boolean }) {
   const { items } = useQuote();
+  const { t, href } = useI18n();
   const [startedAt] = useState(() => Date.now());
   const [requirements, setRequirements] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "error" | "success">(
     "idle",
   );
   const [message, setMessage] = useState("");
+  const customFields = [
+    { name: "Branding", label: t.form.branding },
+    { name: "Colours", label: t.form.colours },
+    { name: "Sizing", label: t.form.sizing },
+    { name: "Packaging", label: t.form.packaging },
+    { name: "Quantity", label: t.form.quantityLabel },
+  ];
   // Hydrate the product query from the browser after static server rendering.
   useEffect(() => {
     const product = new URLSearchParams(location.search).get("product");
-    if (product) setRequirements(`I would like to enquire about ${product}.\n`);
-  }, []);
+    if (product)
+      setRequirements(`${fill(t.form.productPrefill, { product })}\n`);
+  }, [t.form.productPrefill]);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
     const details = custom
-      ? ["Branding", "Colours", "Sizing", "Packaging", "Quantity"]
-          .map((k) => `${k}: ${data.get(k) || "To discuss"}`)
+      ? customFields
+          .map(({ name, label }) => `${label}: ${data.get(name) || t.form.toDiscuss}`)
           .join("\n")
       : "";
     setState("sending");
@@ -41,7 +53,7 @@ export function EnquiryForm({ custom = false }: { custom?: boolean }) {
           phone: data.get("phone") || "",
           requirements:
             requirements +
-            (details ? "\n\nCustom requirements:\n" + details : ""),
+            (details ? `\n\n${t.form.customDetails}:\n` + details : ""),
           consent: data.get("consent") === "on",
           website: data.get("website") || "",
           startedAt,
@@ -49,39 +61,30 @@ export function EnquiryForm({ custom = false }: { custom?: boolean }) {
         }),
       });
       const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.message || "The enquiry could not be sent. Please try again.",
-        );
+      if (!response.ok) throw new Error(result.message || t.form.genericError);
       setState("success");
       setMessage(result.message);
     } catch (error) {
       setState("error");
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Connection unavailable. Your enquiry has not been sent.",
+        error instanceof Error ? error.message : t.form.connectionError,
       );
     }
   }
   return (
     <form onSubmit={submit} className="enquiry-form">
       <div className="form-title">
-        <p className="eyebrow">BUSINESS ENQUIRY</p>
-        <h2>
-          {custom
-            ? "Tell us what you have in mind."
-            : "Let’s discuss your requirements."}
-        </h2>
-        <p>Fields marked * are required.</p>
+        <p className="eyebrow">{t.form.eyebrow}</p>
+        <h2>{custom ? t.form.customTitle : t.form.title}</h2>
+        <p>{t.form.requiredNote}</p>
       </div>
       <div className="form-grid">
         {[
-          ["name", "Your name", "text"],
-          ["company", "Company name", "text"],
-          ["email", "Business email", "email"],
-          ["country", "Country", "text"],
-          ["phone", "Phone (optional)", "tel"],
+          ["name", t.form.name, "text"],
+          ["company", t.form.company, "text"],
+          ["email", t.form.email, "email"],
+          ["country", t.form.country, "text"],
+          ["phone", t.form.phone, "tel"],
         ].map(([name, label, type]) => (
           <label key={name}>
             {label}
@@ -115,25 +118,23 @@ export function EnquiryForm({ custom = false }: { custom?: boolean }) {
           </label>
         ))}
         {custom &&
-          ["Branding", "Colours", "Sizing", "Packaging", "Quantity"].map(
-            (k) => (
-              <label key={k}>
-                {k} preferences
-                <input
-                  name={k}
-                  maxLength={300}
-                  placeholder={
-                    k === "Quantity"
-                      ? "Indicative bulk quantity"
-                      : "Optional — tell us your preference"
-                  }
-                />
-              </label>
-            ),
-          )}
+          customFields.map(({ name, label }) => (
+            <label key={name}>
+              {label} {t.form.preferences}
+              <input
+                name={name}
+                maxLength={300}
+                placeholder={
+                  name === "Quantity"
+                    ? t.form.quantityPlaceholder
+                    : t.form.preferencePlaceholder
+                }
+              />
+            </label>
+          ))}
       </div>
       <label>
-        Requirements *
+        {t.form.requirements} *
         <textarea
           name="requirements"
           required
@@ -142,30 +143,36 @@ export function EnquiryForm({ custom = false }: { custom?: boolean }) {
           rows={5}
           value={requirements}
           onChange={(e) => setRequirements(e.target.value)}
-          placeholder="Products, quantities, preferred specifications, destination and any questions…"
+          placeholder={t.form.requirementsPlaceholder}
         />
       </label>
       <div className="honeypot" aria-hidden="true">
         <label>
-          Leave this field empty
+          {t.form.honeypot}
           <input name="website" tabIndex={-1} autoComplete="off" />
         </label>
       </div>
       <p className="selected-summary">
         {items.length
-          ? `${items.length} product variant${items.length === 1 ? "" : "s"} from your quotation basket will be included.`
-          : "No basket selection? Describe the products you need above."}{" "}
-        <Link href="/quote/">Review selection ↗</Link>
+          ? fill(
+              items.length === 1
+                ? t.form.basketSummaryOne
+                : t.form.basketSummary,
+              { count: items.length },
+            )
+          : t.form.noBasket}{" "}
+        <Link href={href("/quote/")}>{t.form.reviewSelection} ↗</Link>
       </p>
       <label className="consent">
         <input type="checkbox" name="consent" required />{" "}
         <span>
-          I have read the <Link href="/privacy/">draft privacy notice</Link> and
-          agree to be contacted about this enquiry. *
+          {t.form.consentBefore}
+          <Link href={href("/privacy/")}>{t.form.consentLink}</Link>
+          {t.form.consentAfter}
         </span>
       </label>
       <button className="button" type="submit" disabled={state === "sending"}>
-        {state === "sending" ? "Sending enquiry…" : "Submit enquiry"}
+        {state === "sending" ? t.form.sending : t.form.submit}
         <ArrowUpRight size={18} />
       </button>
       {message && (
@@ -182,10 +189,7 @@ export function EnquiryForm({ custom = false }: { custom?: boolean }) {
         </div>
       )}
       {company.sampleCatalogue && (
-        <p className="small muted">
-          Development mode: email delivery must be configured before enquiries
-          can be sent. An unconfigured submission will report an error.
-        </p>
+        <p className="small muted">{t.form.devNote}</p>
       )}
     </form>
   );

@@ -19,6 +19,25 @@ Use Node.js 22.14+ and npm. Run `npm ci`, copy `.env.example` to `.env.local`, t
 
 Pages are rendered on the server at **build time** with Next.js static generation. Interactive components hydrate in the browser. This deployment intentionally uses prerendered catalogue pages rather than request-time SSR; runtime server execution is reserved for validated enquiries. No Next.js Node server is needed in production. For very large catalogues or CMS-driven request-time rendering, migrate the hosting adapter and remove static export. The portable Next.js source can also be adapted for Vercel/Node; add a Next route handler forwarding POST to `handleEnquiry` and remove `output: 'export'` for that target. There is no fake client-side email success path.
 
+## Languages and internationalisation
+
+The site is fully multilingual with static, crawlable pages for every language:
+
+| Language | URL prefix | Example |
+| --- | --- | --- |
+| English (default) | none | `/products/` |
+| German | `/de` | `/de/products/` |
+| French | `/fr` | `/fr/products/` |
+
+- **Automatic detection:** on a first visit to an English page, the browser language is checked and German/French visitors are sent to the matching prefix. The choice is remembered in `localStorage` (`stahltech-locale`), so the language switcher always wins. Add `?lang=en` to any English URL to force English.
+- **Switcher:** available in the header and footer on every page. It keeps the current page when changing language.
+- **Translation files:** `lib/i18n/dictionaries/en.ts`, `de.ts` and `fr.ts` contain all interface and page copy. `lib/i18n/catalogue.ts` contains the German and French category and product content. `lib/i18n/config.ts` defines the locales and URL helpers.
+- **SEO:** each page renders the correct `<html lang>`, a localized canonical URL, `hreflang` alternates for all three languages plus `x-default`, localized Open Graph/Twitter metadata, localized JSON-LD and a multilingual `sitemap.xml`.
+- **Product URLs** stay in English (`/de/products/belt-mounted-tactical-phone-belt/`) so the catalogue has one stable slug per product; the visible name, description, material, colours, sizes and specifications are translated.
+- **Quote basket:** variant values are stored canonically, so a basket built in German still displays correctly after switching to French or English.
+
+To add another language, add its code to `locales` in `lib/i18n/config.ts`, create a dictionary in `lib/i18n/dictionaries/`, register it in `lib/i18n/dictionaries/index.ts`, and add its catalogue translations in `lib/i18n/catalogue.ts`. The route trees under `app/(en)/` and `app/[locale]/` then generate the new pages automatically. `npm test` checks that every dictionary has the same shape and that every product and category has a translation.
+
 ## Email configuration (Resend)
 
 The contact form posts to `/api/enquiry`, which is handled by `lib/enquiry-handler.ts` inside the packaged Worker. Only three values are needed:
